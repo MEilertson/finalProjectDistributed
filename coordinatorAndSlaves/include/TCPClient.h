@@ -12,7 +12,9 @@
 #include <string>
 #include <queue>
 #include <mutex>
-#include <chrono> 
+#include <chrono>
+#include <boost/multiprecision/cpp_int.hpp>
+#include "config.h"
 
 // The amount to read in before we send a packet
 const unsigned int stdin_bufsize = 50;
@@ -29,22 +31,35 @@ public:
 	void sendingThread();
 	std::string sanitizeUserInput(const std::string& s);
 
-   virtual void connectTo(const char *ip_addr, unsigned short port);
-   virtual void handleConnection();
+   virtual void connectTo(const char *ip_addr, unsigned short port) override;
+   virtual void handleConnection() override;
 
-   virtual void closeConn();
+   virtual void closeConn() override;
+
+   protected:
+   	std::queue<std::string> receivedMessages;
+	bool connClosed = false;
+	bool connectionBroke = false;
+	std::mutex mtx1;
 
 private:
 	 sockaddr_in sockaddr;
 	 int sockfd;
 	 struct sockaddr_in server;
-	 bool connClosed = false;
-	 bool connectionBroke = false;
      bool clientTestMode = false; // used to test setting client IP address to static ip addr
 	 std::chrono::system_clock::time_point lastTimeHeartBeatReceived = std::chrono::system_clock::now();;
 
-	 std::queue<std::string> receivedMessages;
-	 std::mutex mtx1;
+};
+
+using namespace boost::multiprecision;
+
+class Slave : public TCPClient
+{
+public:
+	void factorNumber(LARGEINT n);
+	void handleConnection();
+private:
+
 };
 
 

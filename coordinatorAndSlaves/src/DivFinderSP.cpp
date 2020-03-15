@@ -15,7 +15,7 @@ DivFinderSP::~DivFinderSP() {
 // need. uint32_t and uint64_t are easier to debug but not big enough for challenging
 // problems. LARGEINT2X should be twice as big as LARGEINT and LARGESIGNED2X should
 // hold a LARGEINT2X in its positive section (so uint256_t would need int512_t)
-/
+
 /* "Unsigned int type to hold original value and calculations" */
 #define LARGEINT uint128_t
 
@@ -133,7 +133,7 @@ void DivFinderSP::factor(LARGEINT n) {
          if (verbose >= 2)
 	    std::cout << "Pollards rho timed out, checking if the following is prime: " << n << std::endl;
 	 LARGEINT divisor;
-         if (isPrime(n, divisor)) {
+         if (isPrimeBF(n, divisor)) {
 	    if (verbose >= 2)
 	       std::cout << "Prime found: " << n << std::endl;
             primes.push_back(n);

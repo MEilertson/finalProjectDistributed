@@ -32,4 +32,9 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall])
 AC_CONFIG_FILES([Makefile
 		 src/Makefile])
 
+AC_DEFINE(LARGEINT, [uint128_t], [Large int supplied via boost library])
+AC_DEFINE(LARGEINT2X, [uint256_t], [Large 2x int supplied via boost library])
+AC_DEFINE(LARGESIGNED2X, [int512_t], [Large 2x signed int supplied via boost library])
+
+
 AC_OUTPUT

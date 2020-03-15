@@ -18,6 +18,9 @@ void displayHelp(const char *execname) {
    std::cout << execname << " <ip_addr> <port>\n";
 }
 
+// global default values
+const unsigned short default_port = 9999;
+const char default_IP[] = "127.0.0.1";
 
 int main(int argc, char *argv[]) {
 
@@ -28,25 +31,50 @@ int main(int argc, char *argv[]) {
    }
 
    // Read in the IP address from the command line
-   std::string ip_addr(argv[1]);
+   std::string ip_addr(default_IP);
 
-   // Read in the port
-   long portval = strtol(argv[2], NULL, 10);
-   if ((portval < 1) || (portval > 65535)) {
-      std::cout << "Invalid port. Value must be between 1 and 65535";
-      std::cout << "Format: " << argv[0] << " [<max_range>] [<max_threads>]\n";
-       exit(0);
-   }
-   unsigned short port = (unsigned short) portval;
+   unsigned short port = default_port;
  
 
    // Get the command line arguments and set params appropriately
+   int c = 0;
+   long portval;
+   bool slave = false;
+   while ((c = getopt(argc, argv, "p:a:s")) != -1) {
+      switch (c)
+      {
+      case 'p':
+         portval = strtol(argv[2], NULL, 10);
+         if ((portval < 1) || (portval > 65535)) {
+            std::cout << "Invalid port. Value must be between 1 and 65535";
+            std::cout << "Format: " << argv[0] << " [<max_range>] [<max_threads>]\n";
+            exit(0);
+         }
+         port = (unsigned short) portval;
+         break;
+      case 'a':
+         ip_addr = optarg;
+         break;
+      case 's':
+         slave = true;
+         break;
+      default:
+         break;
+      }
+   }
 
    // Try to set up the server for listening
-   TCPClient client;
+   TCPClient* client;
+   if(slave){
+      client = new Slave();
+   } else
+   {
+      client = new TCPClient();
+   }
+   
    try {
       cout << "Connecting to " << ip_addr << " port " << port << endl;
-      client.connectTo(ip_addr.c_str(), port);
+      client->connectTo(ip_addr.c_str(), port);
 
    } catch (socket_error &e)
    {
@@ -57,9 +85,9 @@ int main(int argc, char *argv[]) {
    cout << "Connection established.\n";
 
    try {
-      client.handleConnection();
+      client->handleConnection();
 
-      client.closeConn();
+      client->closeConn();
       cout << "Client disconnected\n";
 
    } catch (runtime_error &e) {

@@ -4,6 +4,7 @@
 #include <string>
 #include "DivFinder.h"
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/math/common_factor.hpp>
 
 // If factor has been called on a number x times, check to see if the number is prime
 const unsigned int primecheck_depth = 10;
@@ -34,7 +35,7 @@ class DivFinderSP : public DivFinder {
       bool isPrimeBF(LARGEINT n, LARGEINT &divisor);
 
    protected:
-
+      void factor();
       void factor(LARGEINT n);
 
 

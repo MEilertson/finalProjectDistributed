@@ -3,6 +3,7 @@
 #include <ctime>
 #include <regex>
 #include "exceptions.h"
+#include <DivFinderSP.h>
 
 /**********************************************************************************************
  * TCPClient (constructor) - Creates a Stdin file descriptor to simplify handling of user input. 
@@ -179,7 +180,3 @@ std::string TCPClient::sanitizeUserInput(const std::string& s) {
 void TCPClient::closeConn() {
 	close(sockfd);
 }
-
-// Factoring functionality
-
-
