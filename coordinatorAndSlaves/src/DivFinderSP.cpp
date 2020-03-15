@@ -25,6 +25,12 @@ DivFinderSP::~DivFinderSP() {
 /* "Signed int made of twice the bits as LARGEINT2X" */
 #define LARGESIGNED2X int512_t
 
+void DivFinderSP::PolRho(std::list<LARGEINT> &prime_factors){
+   primes.clear();
+   factor();
+   combinePrimes(prime_factors);
+}
+
 /*******************************************************************************
  *
  * isPrimeBF - Uses a simple brute force primality test with 6k +/- 1 optimization

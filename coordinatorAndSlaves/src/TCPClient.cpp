@@ -4,6 +4,8 @@
 #include <regex>
 #include "exceptions.h"
 #include <DivFinderSP.h>
+#include <boost/algorithm/string.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 
 /**********************************************************************************************
  * TCPClient (constructor) - Creates a Stdin file descriptor to simplify handling of user input. 
@@ -143,19 +145,19 @@ void TCPClient::receivingThread() {
 }
 
 void TCPClient::sendingThread() {
-	/*
 	while (!connClosed && !connectionBroke) {
 		std::string clientMessage;
-		std::cin >> clientMessage;
 
-		auto sent = sendData(clientMessage);
-
-		if (sanitizeUserInput(clientMessage).compare("exit") == 0 || !sent) {
-			this->connClosed = true;
-			break;
+		//maybe not necessary to lock for the whole sendData() function.
+		this->mtx1.lock();
+		if(!this->sendMessages.empty()){
+			clientMessage = sendMessages.front();
+			auto sending = sendData(clientMessage);
+			sendMessages.pop();
 		}
+		this->mtx1.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
-	*/
 }
 
 std::string TCPClient::sanitizeUserInput(const std::string& s) {
@@ -179,4 +181,64 @@ std::string TCPClient::sanitizeUserInput(const std::string& s) {
  **********************************************************************************************/
 void TCPClient::closeConn() {
 	close(sockfd);
+}
+
+void Slave::handleConnection() {
+
+	while (!connClosed && !connectionBroke) {
+		// check if we got any new messages from the server
+		this->mtx1.lock();
+		if(!this->receivedMessages.empty()) {
+			auto message = this->receivedMessages.front();
+			
+			if (sanitizeUserInput(message).compare("") != 0) // only display messages that have data
+				std::cout << "received: " << message << std::endl;
+			
+			Slave::handleMessage(message);
+
+			this->receivedMessages.pop();
+		}
+		this->mtx1.unlock();
+		if(!prime_factors.empty()){
+			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
+				std::cout << *itr;
+			}
+			prime_factors.clear();
+		}
+	}
+	// check for broken connection
+	if (this->connectionBroke) 
+		throw std::runtime_error("Failed to receive heartbeat from server for 8 seconds!");
+}
+
+void Slave::handleMessage(std::string msg) {
+	std::vector<std::string> splitMessage;
+	boost::algorithm::split(splitMessage, msg, boost::is_any_of("|"));
+	auto messageType = splitMessage.at(0);
+	if(messageType.compare("POLLARD_REQ") == 0) {
+		//REQ|SlaveID|ClientID|Number
+		client_ID = stoi(splitMessage.at(1));
+		slave_ID = stoi(splitMessage.at(2));
+		num_to_factor = strtoLARGE(splitMessage.at(3));
+		cancel_op = false;
+		//run pollards RHO
+		*slave_div = DivFinderSP(num_to_factor);
+		div_thread = std::thread(&DivFinderSP::PolRho, slave_div, std::ref(prime_factors));
+
+	} else if (messageType.compare("CANCEL_REQ") == 0) {
+		//cancel and send CANCEL_RESP to coordinator
+		cancel_op = true;
+		mtx1.lock();
+		sendMessages.push("CANCEL_RESP|" + std::to_string(slave_ID));
+		mtx1.unlock();
+	}
+
+}
+
+LARGEINT Slave::strtoLARGE(std::string str_num) {
+	LARGEINT res = 0;
+	for ( size_t i = 0; i < str_num.length(); i++){
+		res = res*10 + (str_num.at(i) - '0');
+	}
+	return res;
 }

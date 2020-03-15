@@ -28,7 +28,7 @@ class DivFinder {
       virtual ~DivFinder();
 
       // Overload me 
-      virtual void PolRho() = 0;
+      virtual void PolRho(std::list<LARGEINT> &prime_factors) = 0;
 
       LARGEINT getOrigVal() { return _orig_val; }
 

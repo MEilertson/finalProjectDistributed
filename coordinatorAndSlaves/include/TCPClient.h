@@ -14,7 +14,11 @@
 #include <mutex>
 #include <chrono>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <atomic>
+#include <list>
+#include <thread>
 #include "config.h"
+#include "DivFinderSP.h"
 
 // The amount to read in before we send a packet
 const unsigned int stdin_bufsize = 50;
@@ -38,6 +42,7 @@ public:
 
    protected:
    	std::queue<std::string> receivedMessages;
+	std::queue<std::string> sendMessages;
 	bool connClosed = false;
 	bool connectionBroke = false;
 	std::mutex mtx1;
@@ -56,10 +61,20 @@ using namespace boost::multiprecision;
 class Slave : public TCPClient
 {
 public:
+	Slave():TCPClient() {}
 	void factorNumber(LARGEINT n);
 	void handleConnection();
-private:
+	void handleMessage(std::string msg);
+	LARGEINT strtoLARGE(std::string str_num);
 
+private:
+	int client_ID;
+	int slave_ID;
+	LARGEINT num_to_factor;
+	DivFinderSP* slave_div;
+	std::atomic<bool> cancel_op;
+	std::thread div_thread;
+	std::list<LARGEINT> prime_factors;
 };
 
 
