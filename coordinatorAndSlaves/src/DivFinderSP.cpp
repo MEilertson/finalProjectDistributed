@@ -35,6 +35,7 @@ void DivFinderSP::PolRho(std::list<LARGEINT> &prime_factors){
    }
    combinePrimes(prime_factors);
    clean_up();
+
    return;
 }
 

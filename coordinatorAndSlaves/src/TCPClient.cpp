@@ -157,6 +157,7 @@ void TCPClient::sendingThread() {
 			clientMessage = sendMessages.front();
 			auto sending = sendData(clientMessage);
 			sendMessages.pop();
+
 		}
 		this->mtx_send.unlock();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -194,26 +195,28 @@ void Slave::handleConnection() {
 				std::cout << "received: " << message << std::endl;
 			
 			Slave::handleMessage(sanitizeUserInput(message));
-
 			this->receivedMessages.pop();
 		}
 		this->mtx1.unlock();
 		if(cancel_op){
 			prime_factors.clear();
-			div_thread.join();
-			delete slave_div;
 			cancel_op = false;
+			if(slave_div != nullptr){
+				slave_div->cancel_op();
+				div_thread.join();
+				delete slave_div;
+				slave_div = nullptr;
+			}
 		}
 		if(!prime_factors.empty()){
-			std::cout << "Prime factors are: ";
+/* 			std::cout << "Prime factors are: ";
 			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
 				//std::cout << *itr << " ";
 				std::cout << "Testing... " + LARGEtostr(*itr) + ",";
-			}
-			std::cout << std::endl;
+			} 
+			std::cout << std::endl; */
 			std::string pollardResponse = "POLLARD_RESP|" + std::to_string(client_ID) + "|" + std::to_string(slave_ID) + "|" + LARGEtostr(num_to_factor) + "|";
 			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
-				//std::cout << *itr << " ";
 				pollardResponse = pollardResponse + LARGEtostr(*itr) + ",";
 			}
 			this->mtx_send.lock();
@@ -222,6 +225,7 @@ void Slave::handleConnection() {
 			prime_factors.clear();
 			div_thread.join();
 			delete slave_div;
+			slave_div = nullptr;
 		}
 	}
 	// check for broken connection
@@ -246,12 +250,11 @@ void Slave::handleMessage(std::string msg) {
 	} else if (messageType.compare("CANCEL_REQ") == 0) {
 		//cancel and send CANCEL_RESP to coordinator
 		cancel_op = true;
+		slave_ID = stoi(splitMessage.at(1));
 		mtx_send.lock();
-		slave_div->cancel_op();
 		sendMessages.push("CANCEL_RESP|" + std::to_string(slave_ID));
 		mtx_send.unlock();
 	}
-
 }
 
 LARGEINT Slave::strtoLARGE(std::string str_num) {
