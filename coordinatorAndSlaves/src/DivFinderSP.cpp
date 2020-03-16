@@ -27,8 +27,15 @@ DivFinderSP::~DivFinderSP() {
 
 void DivFinderSP::PolRho(std::list<LARGEINT> &prime_factors){
    primes.clear();
+   DivFinder::setVerbose(3);
    factor();
+   if(checkBool()){
+      clean_up();
+      return;
+   }
    combinePrimes(prime_factors);
+   clean_up();
+   return;
 }
 
 /*******************************************************************************
@@ -129,6 +136,8 @@ void DivFinderSP::factor(LARGEINT n) {
    unsigned int iters = 0;
 
    while (!div_found) {
+      if(checkBool())
+         return;
       if (verbose >= 3)
          std::cout << "Starting iteration: " << iters << std::endl;
 
@@ -137,19 +146,19 @@ void DivFinderSP::factor(LARGEINT n) {
       // iters after the check
       if (iters++ == primecheck_depth) {
          if (verbose >= 2)
-	    std::cout << "Pollards rho timed out, checking if the following is prime: " << n << std::endl;
-	 LARGEINT divisor;
+	         std::cout << "Pollards rho timed out, checking if the following is prime: " << n << std::endl;
+         LARGEINT divisor;
          if (isPrimeBF(n, divisor)) {
-	    if (verbose >= 2)
-	       std::cout << "Prime found: " << n << std::endl;
+	         if (verbose >= 2)
+	            std::cout << "Prime found: " << n << std::endl;
             primes.push_back(n);
-	    return;
-	 } else {   // We found a prime divisor, save it and keep finding primes
-	    if (verbose >= 2)
-	       std::cout << "Prime found: " << divisor << std::endl;
-	    primes.push_back(divisor);
-	    return factor(n / divisor);
-	 }				
+	         return;
+	      } else {   // We found a prime divisor, save it and keep finding primes
+	         if (verbose >= 2)
+	            std::cout << "Prime found: " << divisor << std::endl;
+	         primes.push_back(divisor);
+	         return factor(n / divisor);
+	      }				
       }
 
       // We try to get a divisor using Pollards Rho
@@ -171,4 +180,16 @@ void DivFinderSP::factor(LARGEINT n) {
    throw std::runtime_error("Reached end of function--this should not have happened.");
    return;
 }
+
+void DivFinderSP::clean_up(){
+   primes.clear();
+   cancel_bool = false;
+}
+void DivFinderSP::cancel_op(){
+   cancel_bool = true;
+}
+bool DivFinderSP::checkBool(){
+   return cancel_bool;
+}
+
 

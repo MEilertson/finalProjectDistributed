@@ -3,9 +3,11 @@
 #include <ctime>
 #include <regex>
 #include "exceptions.h"
-#include <DivFinderSP.h>
+#include "DivFinderSP.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/numeric/conversion/cast.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+
 
 /**********************************************************************************************
  * TCPClient (constructor) - Creates a Stdin file descriptor to simplify handling of user input. 
@@ -40,10 +42,11 @@ void TCPClient::connectTo(const char *ip_addr, unsigned short port) {
 
 	// BELOW IS FOR TESTING PURPOSES ONLY!	
 	// explicitly set client ip address
-	if (clientTestMode) {
+	//slaveTestMode
+	if (true) {
 		struct sockaddr_in myAddr;
 		myAddr.sin_family = AF_INET;
-		myAddr.sin_addr.s_addr = inet_addr("127.0.0.6");
+		myAddr.sin_addr.s_addr = inet_addr("127.0.0.2");
 	
 		if (bind(sockfd, (struct sockaddr*) &myAddr, sizeof(struct sockaddr_in)) == 0) 
 			std::cout << "Bound client" << std::endl;
@@ -165,12 +168,8 @@ std::string TCPClient::sanitizeUserInput(const std::string& s) {
 	// influence from https://www.techiedelight.com/trim-string-cpp-remove-leading-trailing-spaces/
 	std::string leftTrimmed = std::regex_replace(s, std::regex("^\\s+"), std::string(""));
 	std::string leftAndRightTrimmed = std::regex_replace(leftTrimmed, std::regex("\\s+$"), std::string(""));
-	
-	// convert string to lowercase
-	// influence from https://stackoverflow.com/questions/313970/how-to-convert-stdstring-to-lower-case
-	std::transform(leftAndRightTrimmed.begin(), leftAndRightTrimmed.end(), leftAndRightTrimmed.begin(),
-    [](unsigned char c){ return std::tolower(c); });
 
+	std::string leftAndRightTrimmedandNoNewLine = std::regex_replace(leftAndRightTrimmed, std::regex("\\n"), std::string(""));
 	return leftAndRightTrimmed;
 }
 
@@ -194,16 +193,35 @@ void Slave::handleConnection() {
 			if (sanitizeUserInput(message).compare("") != 0) // only display messages that have data
 				std::cout << "received: " << message << std::endl;
 			
-			Slave::handleMessage(message);
+			Slave::handleMessage(sanitizeUserInput(message));
 
 			this->receivedMessages.pop();
 		}
 		this->mtx1.unlock();
-		if(!prime_factors.empty()){
-			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
-				std::cout << *itr;
-			}
+		if(cancel_op){
 			prime_factors.clear();
+			div_thread.join();
+			delete slave_div;
+			cancel_op = false;
+		}
+		if(!prime_factors.empty()){
+			std::cout << "Prime factors are: ";
+			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
+				//std::cout << *itr << " ";
+				std::cout << "Testing... " + LARGEtostr(*itr) + ",";
+			}
+			std::cout << std::endl;
+			std::string pollardResponse = "POLLARD_RESP|" + std::to_string(client_ID) + "|" + std::to_string(slave_ID) + "|";
+			for(std::list<LARGEINT>::const_iterator itr = prime_factors.begin(), end = prime_factors.end(); itr != end; itr++) {
+				//std::cout << *itr << " ";
+				pollardResponse = pollardResponse + LARGEtostr(*itr) + ",";
+			}
+			this->mtx1.lock();
+			sendMessages.push(pollardResponse.substr(0,pollardResponse.size()-1));
+			this->mtx1.unlock();
+			prime_factors.clear();
+			div_thread.join();
+			delete slave_div;
 		}
 	}
 	// check for broken connection
@@ -214,7 +232,7 @@ void Slave::handleConnection() {
 void Slave::handleMessage(std::string msg) {
 	std::vector<std::string> splitMessage;
 	boost::algorithm::split(splitMessage, msg, boost::is_any_of("|"));
-	auto messageType = splitMessage.at(0);
+ 	auto messageType = splitMessage.at(0);
 	if(messageType.compare("POLLARD_REQ") == 0) {
 		//REQ|SlaveID|ClientID|Number
 		client_ID = stoi(splitMessage.at(1));
@@ -222,13 +240,14 @@ void Slave::handleMessage(std::string msg) {
 		num_to_factor = strtoLARGE(splitMessage.at(3));
 		cancel_op = false;
 		//run pollards RHO
-		*slave_div = DivFinderSP(num_to_factor);
+		slave_div = new DivFinderSP(num_to_factor);
 		div_thread = std::thread(&DivFinderSP::PolRho, slave_div, std::ref(prime_factors));
 
 	} else if (messageType.compare("CANCEL_REQ") == 0) {
 		//cancel and send CANCEL_RESP to coordinator
 		cancel_op = true;
 		mtx1.lock();
+		slave_div->cancel_op();
 		sendMessages.push("CANCEL_RESP|" + std::to_string(slave_ID));
 		mtx1.unlock();
 	}
@@ -241,4 +260,9 @@ LARGEINT Slave::strtoLARGE(std::string str_num) {
 		res = res*10 + (str_num.at(i) - '0');
 	}
 	return res;
+}
+std::string Slave::LARGEtostr(LARGEINT i) {
+	std::stringstream ss;
+	ss << i;
+	return ss.str();
 }

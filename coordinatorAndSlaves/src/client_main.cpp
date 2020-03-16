@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
       switch (c)
       {
       case 'p':
-         portval = strtol(argv[2], NULL, 10);
+         portval = strtol(optarg, NULL, 10);
          if ((portval < 1) || (portval > 65535)) {
             std::cout << "Invalid port. Value must be between 1 and 65535";
             std::cout << "Format: " << argv[0] << " [<max_range>] [<max_threads>]\n";

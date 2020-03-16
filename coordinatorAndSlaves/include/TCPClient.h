@@ -17,6 +17,7 @@
 #include <atomic>
 #include <list>
 #include <thread>
+#include <condition_variable>
 #include "config.h"
 #include "DivFinderSP.h"
 
@@ -35,10 +36,10 @@ public:
 	void sendingThread();
 	std::string sanitizeUserInput(const std::string& s);
 
-   virtual void connectTo(const char *ip_addr, unsigned short port) override;
-   virtual void handleConnection() override;
+   virtual void connectTo(const char *ip_addr, unsigned short port);
+   virtual void handleConnection();
 
-   virtual void closeConn() override;
+   virtual void closeConn();
 
    protected:
    	std::queue<std::string> receivedMessages;
@@ -66,15 +67,18 @@ public:
 	void handleConnection();
 	void handleMessage(std::string msg);
 	LARGEINT strtoLARGE(std::string str_num);
+	std::string LARGEtostr(LARGEINT i);
 
 private:
 	int client_ID;
 	int slave_ID;
 	LARGEINT num_to_factor;
-	DivFinderSP* slave_div;
-	std::atomic<bool> cancel_op;
+	DivFinderSP* slave_div = nullptr;
+	std::atomic<bool> cancel_op{false};
 	std::thread div_thread;
 	std::list<LARGEINT> prime_factors;
+	std::condition_variable cv;
+	std::mutex cancel_mtx;
 };
 
 
