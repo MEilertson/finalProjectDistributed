@@ -47,6 +47,7 @@ void TCPClient::connectTo(const char *ip_addr, unsigned short port) {
 		struct sockaddr_in myAddr;
 		myAddr.sin_family = AF_INET;
 		myAddr.sin_addr.s_addr = inet_addr("127.0.0.2");
+		myAddr.sin_port = 0;
 	
 		if (bind(sockfd, (struct sockaddr*) &myAddr, sizeof(struct sockaddr_in)) == 0) 
 			std::cout << "Bound client" << std::endl;
