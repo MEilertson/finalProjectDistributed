@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <atomic>
 #include "config.h"
 
 using namespace boost::multiprecision;
@@ -37,6 +38,7 @@ class DivFinder {
 
       void setVerbose(int lvl);
 
+      void cancel_op();
 
    protected:
 
@@ -45,6 +47,10 @@ class DivFinder {
       std::list<LARGEINT> primes;
 		
       int verbose = 0;
+      
+      bool checkBool();
+      void clean_up();
+      std::atomic<bool> cancel_bool{false};
 
       // Do not forget, your constructor should call this constructor
 

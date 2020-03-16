@@ -71,6 +71,9 @@ LARGEINT DivFinder::calcPollardsRho(LARGEINT n) {
 
    // Loop until either we find the gcd or gcd = 1
    while (d == 1) {
+      if(checkBool()){
+         return 0;
+      }
       // "Tortoise move" - Update x to f(x) (modulo n)
       // f(x) = x^2 + c f
       x = (modularPow(x, 2, n) + c + n) % n;
@@ -101,3 +104,14 @@ void DivFinder::combinePrimes(std::list<LARGEINT> &dest) {
    dest.insert(dest.end(), primes.begin(), primes.end());
 }
 
+
+void DivFinder::clean_up(){
+   primes.clear();
+   cancel_bool = false;
+}
+void DivFinder::cancel_op(){
+   cancel_bool = true;
+}
+bool DivFinder::checkBool(){
+   return cancel_bool;
+}

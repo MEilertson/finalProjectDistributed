@@ -35,14 +35,11 @@ class DivFinderSP : public DivFinder {
 
       bool isPrimeBF(LARGEINT n, LARGEINT &divisor);
 
-      bool checkBool();
-      void clean_up();
-      void cancel_op();
 
    protected:
       void factor();
       void factor(LARGEINT n);
-      std::atomic<bool> cancel_bool{false};
+
       
 
 

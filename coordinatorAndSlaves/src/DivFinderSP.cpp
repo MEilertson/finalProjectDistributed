@@ -163,6 +163,8 @@ void DivFinderSP::factor(LARGEINT n) {
 
       // We try to get a divisor using Pollards Rho
       LARGEINT d = calcPollardsRho(n);
+      if(checkBool())
+         return;
       if (d != n) {
          if (verbose >= 1)
             std::cout << "Divisor found: " << d << std::endl;
@@ -179,17 +181,6 @@ void DivFinderSP::factor(LARGEINT n) {
    }
    throw std::runtime_error("Reached end of function--this should not have happened.");
    return;
-}
-
-void DivFinderSP::clean_up(){
-   primes.clear();
-   cancel_bool = false;
-}
-void DivFinderSP::cancel_op(){
-   cancel_bool = true;
-}
-bool DivFinderSP::checkBool(){
-   return cancel_bool;
 }
 
 

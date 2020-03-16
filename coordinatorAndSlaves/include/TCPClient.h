@@ -47,6 +47,7 @@ public:
 	bool connClosed = false;
 	bool connectionBroke = false;
 	std::mutex mtx1;
+	std::mutex mtx_send;
 
 private:
 	 sockaddr_in sockaddr;
